@@ -20,9 +20,8 @@ model_kwargs = {'device': 'cpu'}
 embedding = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
 persist_directory = 'db'
 vectordb = Chroma.from_documents(documents=all_splits, embedding=embedding, persist_directory=persist_directory)
-model_path = "llama.cpp/models/llama-2-7b-chat/llama-2_q4.gguf"
 llm = LlamaCpp(
-    model_path=model_path,
+    model_path="llama-2_q4.gguf",
     n_gpu_layers=100,
     n_batch=512,
     n_ctx=2048,
