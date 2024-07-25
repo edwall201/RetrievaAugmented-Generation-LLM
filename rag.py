@@ -10,7 +10,6 @@ from langchain_community.llms import LlamaCpp
 import sqlite3
 print(sqlite3.sqlite_version)
 
-
 loader = PyMuPDFLoader("./Alex.pdf")
 PDF_data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=5)
@@ -20,12 +19,3 @@ model_kwargs = {'device': 'cpu'}
 embedding = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
 persist_directory = 'db'
 vectordb = Chroma.from_documents(documents=all_splits, embedding=embedding, persist_directory=persist_directory)
-llm = LlamaCpp(
-    model_path="llama-2_q4.gguf",
-    n_gpu_layers=100,
-    n_batch=512,
-    n_ctx=2048,
-    f16_kv=True,
-    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-    verbose=True,
-)
