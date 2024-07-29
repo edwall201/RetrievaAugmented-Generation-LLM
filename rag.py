@@ -1,7 +1,6 @@
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -32,31 +31,25 @@ llm = LlamaCpp(
     callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
     verbose=True,
 )
-DEFAULT_LLAMA_SEARCH_PROMPT = PromptTemplate(
+LLAMA_SEARCH_PROMPT = PromptTemplate(
     input_variables=["question"],
-    template="""<<SYS>> 
-    Assist to provide search result.
-    <</SYS>> 
-    
-    [INST] Provide an answer.
-            {question} 
-    [/INST]""",
+    template="""<<SYS>> Assist to provide search result. <</SYS>>
+    [INST] Provide an answer.{question} [/INST]""",
 )
 
-DEFAULT_SEARCH_PROMPT = PromptTemplate(
+SEARCH_PROMPT = PromptTemplate(
     input_variables=["question"],
     template="""Assist to provide search result. \
         Provide an answer.\
         {question}""",
 )
 
-QUESTION_PROMPT_SELECTOR = ConditionalPromptSelector(
-    default_prompt=DEFAULT_SEARCH_PROMPT,
-    conditionals=[(lambda llm: isinstance(llm, LlamaCpp), DEFAULT_LLAMA_SEARCH_PROMPT)],
+QUESTION_PROMPT = ConditionalPromptSelector(
+    default_prompt=SEARCH_PROMPT,
+    conditionals=[(lambda llm: isinstance(llm, LlamaCpp), LLAMA_SEARCH_PROMPT)],
 )
 
-prompt = QUESTION_PROMPT_SELECTOR.get_prompt(llm)
-
+prompt = QUESTION_PROMPT.get_prompt(llm)
 llm_chain = LLMChain(prompt=prompt, llm=llm)
 question = "Whats best food in the US?"
 llm_chain.invoke({"question": question})
