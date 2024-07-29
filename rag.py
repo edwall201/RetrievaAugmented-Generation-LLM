@@ -6,6 +6,9 @@ from langchain.vectorstores import Chroma
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_community.llms import LlamaCpp
+from langchain.chains import LLMChain
+from langchain.chains.prompt_selector import ConditionalPromptSelector
+from langchain.prompts import PromptTemplate
 
 import sqlite3
 print(sqlite3.sqlite_version)
@@ -19,3 +22,42 @@ model_kwargs = {'device': 'cpu'}
 embedding = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
 persist_directory = 'db'
 vectordb = Chroma.from_documents(documents=all_splits, embedding=embedding, persist_directory=persist_directory)
+
+llm = LlamaCpp(
+    model_path="llama-2_q4.gguf",
+    n_gpu_layers=100,
+    n_batch=512,
+    n_ctx=2048,
+    f16_kv=True,
+    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
+    verbose=True,
+)
+DEFAULT_LLAMA_SEARCH_PROMPT = PromptTemplate(
+    input_variables=["question"],
+    template="""<<SYS>> 
+    Assist to provide search result.
+    <</SYS>> 
+    
+    [INST] Provide an answer.
+            {question} 
+    [/INST]""",
+)
+
+DEFAULT_SEARCH_PROMPT = PromptTemplate(
+    input_variables=["question"],
+    template="""Assist to provide search result. \
+        Provide an answer.\
+        {question}""",
+)
+
+QUESTION_PROMPT_SELECTOR = ConditionalPromptSelector(
+    default_prompt=DEFAULT_SEARCH_PROMPT,
+    conditionals=[(lambda llm: isinstance(llm, LlamaCpp), DEFAULT_LLAMA_SEARCH_PROMPT)],
+)
+
+prompt = QUESTION_PROMPT_SELECTOR.get_prompt(llm)
+
+llm_chain = LLMChain(prompt=prompt, llm=llm)
+question = "Whats best food in the US?"
+llm_chain.invoke({"question": question})
+
